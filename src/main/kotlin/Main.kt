@@ -1,6 +1,10 @@
 import org.apache.poi.xssf.usermodel.XSSFWorkbook
+import java.io.BufferedReader
+import java.io.File
 import java.io.FileOutputStream
+import java.io.InputStreamReader
 import java.util.*
+import java.util.concurrent.Executors
 
 val replacements = mapOf(
     "Balance Factor Changes" to "BF Changes",
@@ -18,22 +22,61 @@ val datatypes = listOf(
     Datatype("Skip List")
 )
 
-fun main() {
+fun runTests(filePath: String): List<String> {
+    val builder = ProcessBuilder()
+
+    // Windows check would go here
+
+    val exeFile = File("C:\\Users\\nicch\\Documents\\Projects\\C++\\EECS-2510-Lab-3\\x64\\Release\\Lab 3.exe")
+
+    builder.command("\"${exeFile.path}\" \"$filePath\"")
+
+    val process = builder.start()
+
+    val inputStream = process.inputStream
+
+    val reader = BufferedReader(InputStreamReader(inputStream))
+
+    val executor = Executors.newSingleThreadExecutor()
+
+    val output = mutableListOf<String>()
+
+    executor.submit {
+        var line = reader.readLine()
+
+        while (true) {
+            output.add(line)
+
+            line = reader.readLine()
+
+            if (line == null) {
+                println("BREAK")
+                break
+            }
+        }
+    }
+
+    val exitCode = process.waitFor()
+
+    executor.shutdown()
+
+    println("Exit Code: $exitCode")
+
+    return output
+}
+
+fun main(args: Array<String>) {
+    if (args.isEmpty()) {
+        println("No file name specified!")
+
+        return
+    }
+
+    val filePath = args[0]
+
     val scanner = Scanner(System.`in`)
 
-    val input = mutableListOf<String>()
-
-    println("Paste your program output:")
-
-    while (scanner.hasNextLine()) {
-        val line = scanner.nextLine()
-
-        if (line.isEmpty()) {
-            break;
-        }
-
-        input.add(line)
-    }
+    val output = runTests(filePath)
 
     var currentDatatype: Datatype? = null
 
@@ -43,9 +86,9 @@ fun main() {
         trackingStats[datatype] = mutableMapOf()
     }
 
-    val fileName = input[0]
+    val fileName = output[0]
 
-    input.subList(1, input.size).forEach { line ->
+    output.subList(1, output.size).forEach { line ->
         datatypes.forEach typeCheck@{ datatype ->
             if (line.contains(datatype.name)) {
                 currentDatatype = datatype
@@ -77,7 +120,7 @@ fun main() {
 
         var currentColumn = 1
 
-        trackingStats[datatype]!!.forEach writer@ { key, count ->
+        trackingStats[datatype]!!.forEach writer@{ key, count ->
             if (ignore.contains(key)) {
                 return@writer
             }
