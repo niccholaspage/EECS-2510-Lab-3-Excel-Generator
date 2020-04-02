@@ -3,7 +3,6 @@ import java.io.BufferedReader
 import java.io.File
 import java.io.FileOutputStream
 import java.io.InputStreamReader
-import java.util.*
 import java.util.concurrent.Executors
 
 const val NUMBER_OF_RUNS = 3
@@ -24,7 +23,7 @@ val datatypes = listOf(
     "Skip List"
 )
 
-fun runTests(filePath: String): MutableMap<String, MutableMap<String, Any>> {
+fun runProgram(filePath: String): MutableMap<String, MutableMap<String, Any>> {
     val builder = ProcessBuilder()
 
     // Windows check would go here
@@ -100,67 +99,68 @@ fun main(args: Array<String>) {
         return
     }
 
-    val filePath = args[0]
-
-    val scanner = Scanner(System.`in`)
-
-    val allStats = mutableListOf<MutableMap<String, MutableMap<String, Any>>>()
-
-    for (i in 0 until NUMBER_OF_RUNS) {
-        val stats = runTests(filePath)
-
-        allStats.add(stats)
-    }
-
-    val firstStats = allStats[0]
-
-    for (datatype in datatypes) {
-        for (i in 0 until NUMBER_OF_RUNS) {
-
-            firstStats[datatype]!!["Time ${i + 1}"] = allStats[i][datatype]!!["Elapsed Time"] as Double
-        }
-    }
-
-    firstStats.remove("Elapsed Time")
-
     val workbook = XSSFWorkbook()
 
-    datatypes.forEach { datatype ->
-        val sheet = workbook.createSheet(datatype)
+    var dataRow = 1
 
-        val header = sheet.createRow(0)
+    for (filePath in args) {
+        val allStats = mutableListOf<MutableMap<String, MutableMap<String, Any>>>()
 
-        val data = sheet.createRow(1)
+        for (i in 0 until NUMBER_OF_RUNS) {
+            val stats = runProgram(filePath)
 
-        var currentColumn = 0
-
-        allStats[0][datatype]!!.forEach writer@{ key, value ->
-            if (ignore.contains(key)) {
-                return@writer
-            }
-
-            val replacement = replacements[key]
-
-            if (replacement != null) {
-                header.createCell(currentColumn).setCellValue(replacement)
-            } else {
-                header.createCell(currentColumn).setCellValue(key)
-            }
-
-            when (value) {
-                is String -> {
-                    data.createCell(currentColumn).setCellValue(value)
-                }
-                is Double -> {
-                    data.createCell(currentColumn).setCellValue(value)
-                }
-                else -> {
-                    println("Bad type!!")
-                }
-            }
-
-            currentColumn++
+            allStats.add(stats)
         }
+
+        val firstStats = allStats[0]
+
+        for (datatype in datatypes) {
+            for (i in 0 until NUMBER_OF_RUNS) {
+                firstStats[datatype]!!["Time ${i + 1}"] = allStats[i][datatype]!!["Elapsed Time"] as Double
+            }
+        }
+
+        firstStats.remove("Elapsed Time")
+
+        datatypes.forEach { datatype ->
+            val sheet = workbook.getSheet(datatype) ?: workbook.createSheet(datatype)
+
+            val header = sheet.createRow(0)
+
+            val data = sheet.createRow(dataRow)
+
+            var currentColumn = 0
+
+            allStats[0][datatype]!!.forEach writer@{ key, value ->
+                if (ignore.contains(key)) {
+                    return@writer
+                }
+
+                val replacement = replacements[key]
+
+                if (replacement != null) {
+                    header.createCell(currentColumn).setCellValue(replacement)
+                } else {
+                    header.createCell(currentColumn).setCellValue(key)
+                }
+
+                when (value) {
+                    is String -> {
+                        data.createCell(currentColumn).setCellValue(value)
+                    }
+                    is Double -> {
+                        data.createCell(currentColumn).setCellValue(value)
+                    }
+                    else -> {
+                        println("Bad type!!")
+                    }
+                }
+
+                currentColumn++
+            }
+        }
+
+        dataRow++
     }
 
     workbook.write(FileOutputStream("output.xlsx"))
