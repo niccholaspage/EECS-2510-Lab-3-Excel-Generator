@@ -6,6 +6,8 @@ import java.io.InputStreamReader
 import java.util.*
 import java.util.concurrent.Executors
 
+const val NUMBER_OF_RUNS = 3
+
 val replacements = mapOf(
     "Balance Factor Changes" to "BF Changes",
     "A to Y Balance Factor Changes" to "A to Y BF Changes"
@@ -22,7 +24,7 @@ val datatypes = listOf(
     "Skip List"
 )
 
-fun runTests(filePath: String): Map<String, Map<String, Any>> {
+fun runTests(filePath: String): MutableMap<String, MutableMap<String, Any>> {
     val builder = ProcessBuilder()
 
     // Windows check would go here
@@ -102,7 +104,24 @@ fun main(args: Array<String>) {
 
     val scanner = Scanner(System.`in`)
 
-    val stats = runTests(filePath)
+    val allStats = mutableListOf<MutableMap<String, MutableMap<String, Any>>>()
+
+    for (i in 0 until NUMBER_OF_RUNS) {
+        val stats = runTests(filePath)
+
+        allStats.add(stats)
+    }
+
+    val firstStats = allStats[0]
+
+    for (datatype in datatypes) {
+        for (i in 0 until NUMBER_OF_RUNS) {
+
+            firstStats[datatype]!!["Time ${i + 1}"] = allStats[i][datatype]!!["Elapsed Time"] as Double
+        }
+    }
+
+    firstStats.remove("Elapsed Time")
 
     val workbook = XSSFWorkbook()
 
@@ -115,7 +134,7 @@ fun main(args: Array<String>) {
 
         var currentColumn = 0
 
-        stats[datatype]!!.forEach writer@{ key, value ->
+        allStats[0][datatype]!!.forEach writer@{ key, value ->
             if (ignore.contains(key)) {
                 return@writer
             }
