@@ -1,1 +1,0 @@
-class Datatype(val name: String)

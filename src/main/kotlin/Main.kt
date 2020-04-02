@@ -16,10 +16,10 @@ val ignore = listOf(
 )
 
 val datatypes = listOf(
-    Datatype("RBT"),
-    Datatype("AVL"),
-    Datatype("BST"),
-    Datatype("Skip List")
+    "RBT",
+    "AVL",
+    "BST",
+    "Skip List"
 )
 
 fun runTests(filePath: String): List<String> {
@@ -78,9 +78,9 @@ fun main(args: Array<String>) {
 
     val output = runTests(filePath)
 
-    var currentDatatype: Datatype? = null
+    var currentDatatype: String? = null
 
-    val trackingStats = mutableMapOf<Datatype, MutableMap<String, Double>>()
+    val trackingStats = mutableMapOf<String, MutableMap<String, Double>>()
 
     datatypes.forEach { datatype ->
         trackingStats[datatype] = mutableMapOf()
@@ -90,7 +90,7 @@ fun main(args: Array<String>) {
 
     output.subList(1, output.size).forEach { line ->
         datatypes.forEach typeCheck@{ datatype ->
-            if (line.contains(datatype.name)) {
+            if (line.contains(datatype)) {
                 currentDatatype = datatype
 
                 return@forEach
@@ -109,7 +109,7 @@ fun main(args: Array<String>) {
     val workbook = XSSFWorkbook()
 
     datatypes.forEach { datatype ->
-        val sheet = workbook.createSheet(datatype.name)
+        val sheet = workbook.createSheet(datatype)
 
         val header = sheet.createRow(0)
 
