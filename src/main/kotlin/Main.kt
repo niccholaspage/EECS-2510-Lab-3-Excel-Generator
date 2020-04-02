@@ -22,7 +22,7 @@ val datatypes = listOf(
     "Skip List"
 )
 
-fun runTests(filePath: String): List<String> {
+fun runTests(filePath: String): Map<String, Map<String, Any>> {
     val builder = ProcessBuilder()
 
     // Windows check would go here
@@ -62,31 +62,13 @@ fun runTests(filePath: String): List<String> {
 
     println("Exit Code: $exitCode")
 
-    return output
-}
-
-fun main(args: Array<String>) {
-    if (args.isEmpty()) {
-        println("No file name specified!")
-
-        return
-    }
-
-    val filePath = args[0]
-
-    val scanner = Scanner(System.`in`)
-
-    val output = runTests(filePath)
-
     var currentDatatype: String? = null
 
-    val trackingStats = mutableMapOf<String, MutableMap<String, Double>>()
+    val trackingStats = mutableMapOf<String, MutableMap<String, Any>>()
 
     datatypes.forEach { datatype ->
-        trackingStats[datatype] = mutableMapOf()
+        trackingStats[datatype] = mutableMapOf<String, Any>("File" to filePath.substringAfterLast('\\'))
     }
-
-    val fileName = output[0]
 
     output.subList(1, output.size).forEach { line ->
         datatypes.forEach typeCheck@{ datatype ->
@@ -106,6 +88,22 @@ fun main(args: Array<String>) {
         }
     }
 
+    return trackingStats
+}
+
+fun main(args: Array<String>) {
+    if (args.isEmpty()) {
+        println("No file name specified!")
+
+        return
+    }
+
+    val filePath = args[0]
+
+    val scanner = Scanner(System.`in`)
+
+    val stats = runTests(filePath)
+
     val workbook = XSSFWorkbook()
 
     datatypes.forEach { datatype ->
@@ -115,12 +113,9 @@ fun main(args: Array<String>) {
 
         val data = sheet.createRow(1)
 
-        header.createCell(0).setCellValue("File")
-        data.createCell(0).setCellValue(fileName.substringAfterLast("\\"))
+        var currentColumn = 0
 
-        var currentColumn = 1
-
-        trackingStats[datatype]!!.forEach writer@{ key, count ->
+        stats[datatype]!!.forEach writer@{ key, value ->
             if (ignore.contains(key)) {
                 return@writer
             }
@@ -133,7 +128,17 @@ fun main(args: Array<String>) {
                 header.createCell(currentColumn).setCellValue(key)
             }
 
-            data.createCell(currentColumn).setCellValue(count)
+            when (value) {
+                is String -> {
+                    data.createCell(currentColumn).setCellValue(value)
+                }
+                is Double -> {
+                    data.createCell(currentColumn).setCellValue(value)
+                }
+                else -> {
+                    println("Bad type!!")
+                }
+            }
 
             currentColumn++
         }
