@@ -51,7 +51,6 @@ fun runProgram(filePath: String): MutableMap<String, MutableMap<String, Any>> {
             line = reader.readLine()
 
             if (line == null) {
-                println("BREAK")
                 break
             }
         }
@@ -60,8 +59,6 @@ fun runProgram(filePath: String): MutableMap<String, MutableMap<String, Any>> {
     val exitCode = process.waitFor()
 
     executor.shutdown()
-
-    println("Exit Code: $exitCode")
 
     var currentDatatype: String? = null
 
@@ -112,13 +109,18 @@ fun main(args: Array<String>) {
     var dataRow = 1
 
     for (filePath in filePaths) {
+        println("Running $filePath:")
+
         val allStats = mutableListOf<MutableMap<String, MutableMap<String, Any>>>()
 
         for (i in 0 until NUMBER_OF_RUNS) {
             val stats = runProgram(filePath)
 
             allStats.add(stats)
+            println("Test ${i + 1} / $NUMBER_OF_RUNS")
         }
+
+        println()
 
         val firstStats = allStats[0]
 
