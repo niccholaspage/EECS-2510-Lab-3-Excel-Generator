@@ -117,7 +117,8 @@ fun main(args: Array<String>) {
             val stats = runProgram(filePath)
 
             allStats.add(stats)
-            println("Test ${i + 1} / $NUMBER_OF_RUNS")
+
+            println("Finished Test ${i + 1} / $NUMBER_OF_RUNS")
         }
 
         println()
