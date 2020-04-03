@@ -1,3 +1,5 @@
+import org.apache.poi.ss.usermodel.CellType
+import org.apache.poi.ss.util.CellReference
 import org.apache.poi.xssf.usermodel.XSSFWorkbook
 import java.io.BufferedReader
 import java.io.File
@@ -58,7 +60,7 @@ fun runProgram(filePath: String): MutableMap<String, MutableMap<String, Any>> {
     }
 
     // TODO: Update C++ program to return exit codes properly and utilize this
-    // val exitCode = process.waitFor()
+    val exitCode = process.waitFor()
 
     executor.shutdown()
 
@@ -143,7 +145,6 @@ fun main(args: Array<String>) {
             var currentColumn = 0
 
             allStats[0][datatype]!!.forEach writer@{ key, value ->
-                println(key)
                 if (ignore.contains(key)) {
                     return@writer
                 }
@@ -170,6 +171,17 @@ fun main(args: Array<String>) {
 
                 currentColumn++
             }
+
+            val timeColumns = header.filter { it.stringCellValue.startsWith("Time ") }
+
+            val firstTimeHeader = timeColumns.first()
+            val lastTimeHeader = timeColumns.last()
+
+            val firstTimeCell = CellReference(data.getCell(firstTimeHeader.columnIndex)).formatAsString(false)
+            val lastTimeCell = CellReference(data.getCell(lastTimeHeader.columnIndex)).formatAsString(false)
+
+            header.createCell(currentColumn).setCellValue("Average Time")
+            data.createCell(currentColumn).cellFormula = "AVERAGE($firstTimeCell:$lastTimeCell)"
         }
 
         dataRow++
