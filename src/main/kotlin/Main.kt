@@ -13,7 +13,8 @@ val replacements = mapOf(
 )
 
 val ignore = listOf(
-    "Number of Items"
+    "Number of Items",
+    "Elapsed Time"
 )
 
 val datatypes = listOf(
@@ -56,7 +57,8 @@ fun runProgram(filePath: String): MutableMap<String, MutableMap<String, Any>> {
         }
     }
 
-    val exitCode = process.waitFor()
+    // TODO: Update C++ program to return exit codes properly and utilize this
+    // val exitCode = process.waitFor()
 
     executor.shutdown()
 
@@ -131,8 +133,6 @@ fun main(args: Array<String>) {
             }
         }
 
-        firstStats.remove("Elapsed Time")
-
         datatypes.forEach { datatype ->
             val sheet = workbook.getSheet(datatype) ?: workbook.createSheet(datatype)
 
@@ -143,6 +143,7 @@ fun main(args: Array<String>) {
             var currentColumn = 0
 
             allStats[0][datatype]!!.forEach writer@{ key, value ->
+                println(key)
                 if (ignore.contains(key)) {
                     return@writer
                 }
