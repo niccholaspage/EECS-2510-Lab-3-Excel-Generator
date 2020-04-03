@@ -102,7 +102,7 @@ fun main(args: Array<String>) {
     val filePaths = if (args[0] == "-r") {
         val workingDirectory = File(".")
 
-        workingDirectory.walk().filter { it.endsWith(".txt") }.map { it.path }.toList()
+        workingDirectory.walk().filter { it.extension == "txt" }.map { it.canonicalPath }.toList()
     } else {
         args.toList()
     }
