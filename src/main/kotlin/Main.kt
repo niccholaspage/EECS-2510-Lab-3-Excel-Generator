@@ -111,7 +111,7 @@ fun main(args: Array<String>) {
 
     var dataRow = 1
 
-    for (filePath in args) {
+    for (filePath in filePaths) {
         val allStats = mutableListOf<MutableMap<String, MutableMap<String, Any>>>()
 
         for (i in 0 until NUMBER_OF_RUNS) {
