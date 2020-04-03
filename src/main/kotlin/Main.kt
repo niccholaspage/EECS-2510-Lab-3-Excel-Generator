@@ -99,6 +99,14 @@ fun main(args: Array<String>) {
         return
     }
 
+    val filePaths = if (args[0] == "-r") {
+        val workingDirectory = File(".")
+
+        workingDirectory.walk().filter { it.endsWith(".txt") }.map { it.path }.toList()
+    } else {
+        args.toList()
+    }
+
     val workbook = XSSFWorkbook()
 
     var dataRow = 1
