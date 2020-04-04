@@ -17,7 +17,6 @@
  * Date:       Apr 4, 2020
  * Copyright:  Copyright 2020 by Nicholas Nassar. All rights reserved.
  */
-import org.apache.poi.ss.util.CellReference
 import org.apache.poi.xssf.usermodel.XSSFWorkbook
 import java.io.BufferedReader
 import java.io.File
@@ -32,10 +31,8 @@ val replacements = mapOf(
 )
 
 // Stats that don't need to be written out to the Excel file can be placed here so that they are ignored.
-// Time is ignored as it is written out for each run instead of a single elapsed time.
 val ignore = listOf(
-    "Number of Items",
-    "Elapsed Time"
+    "Number of Items"
 )
 
 // The list of datatypes that we will be looking for in the comparison program's output.
@@ -46,12 +43,19 @@ val datatypes = listOf(
     "Skip List"
 )
 
+// We use a type alias to make this typing a lot less insane to understand.
+// A stat map is a map with strings as the key, representing the datatype.
+// The value is another map, with the key representing the name of the stat
+// we are recording, and the value being the result of the stat, which could
+// be a count or time in seconds for example.
+typealias StatMap = Map<String, MutableMap<String, Any>>
+
 /**
  * This method runs the program at the given executable file. The given file path will be run through
  * the comparison program. Each line of the program's output will be parsed into a map, with keys for
  * each datatype and values being another map representing the keys and values of each stat.
  */
-fun runProgram(executableFile: File, filePath: String): Map<String, MutableMap<String, Any>> {
+fun runProgram(executableFile: File, filePath: String): StatMap {
     // Create a ProcessBuilder, passing in the path of our executable file and the text file we will be running
     // our comparison program on. Paths are enclosed in double quotes to account for any spaces in these file
     // paths.
@@ -189,7 +193,7 @@ fun main(args: Array<String>) {
     for (filePath in filePaths) {
         println("Running $filePath:")
 
-        val allStats = mutableListOf<Map<String, MutableMap<String, Any>>>()
+        val allStats = mutableListOf<StatMap>()
 
         for (i in 0 until NUMBER_OF_RUNS) {
             val stats = runProgram(executableFile, filePath)
@@ -201,11 +205,29 @@ fun main(args: Array<String>) {
 
         println()
 
-        val firstStats = allStats[0]
+        val averageStats = datatypes.map {
+            it to mutableMapOf<String, Any>("File" to filePath.substringAfterLast('\\'))
+        }.toMap()
 
-        for (datatype in datatypes) {
-            for (i in 0 until NUMBER_OF_RUNS) {
-                firstStats[datatype]!!["Time ${i + 1}"] = allStats[i][datatype]!!["Elapsed Time"] as Double
+        allStats.forEach { stats ->
+            stats.forEach { (datatype, results) ->
+                val averageResults = averageStats[datatype]!!
+
+                results.forEach { (statName, statValue) ->
+                    when (statValue) {
+                        is Double -> {
+                            val averageValue = averageResults.getOrDefault(statName, 0.0) as Double
+
+                            averageResults[statName] = averageValue + statValue
+                        }
+                        is String -> {
+                            averageResults[statName] = statValue
+                        }
+                        else -> {
+                            throw IllegalArgumentException("Not seen type!")
+                        }
+                    }
+                }
             }
         }
 
@@ -218,7 +240,7 @@ fun main(args: Array<String>) {
 
             var currentColumn = 0
 
-            allStats[0][datatype]!!.forEach writer@{ key, value ->
+            averageStats[datatype]!!.forEach writer@{ key, value ->
                 if (ignore.contains(key)) {
                     return@writer
                 }
@@ -236,7 +258,9 @@ fun main(args: Array<String>) {
                         data.createCell(currentColumn).setCellValue(value)
                     }
                     is Double -> {
-                        data.createCell(currentColumn).setCellValue(value)
+                        val averagedValue = value / NUMBER_OF_RUNS
+
+                        data.createCell(currentColumn).setCellValue(averagedValue)
                     }
                     else -> {
                         println("Bad type!!")
@@ -245,17 +269,6 @@ fun main(args: Array<String>) {
 
                 currentColumn++
             }
-
-            val timeColumns = header.filter { it.stringCellValue.startsWith("Time ") }
-
-            val firstTimeHeader = timeColumns.first()
-            val lastTimeHeader = timeColumns.last()
-
-            val firstTimeCell = CellReference(data.getCell(firstTimeHeader.columnIndex)).formatAsString(false)
-            val lastTimeCell = CellReference(data.getCell(lastTimeHeader.columnIndex)).formatAsString(false)
-
-            header.createCell(currentColumn).setCellValue("Average Time")
-            data.createCell(currentColumn).cellFormula = "AVERAGE($firstTimeCell:$lastTimeCell)"
         }
 
         dataRow++
