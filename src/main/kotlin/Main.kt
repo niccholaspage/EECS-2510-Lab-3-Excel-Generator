@@ -126,12 +126,17 @@ fun main(args: Array<String>) {
             |-r - Recursive mode: Any .txt sitting in the working directory directories underneath it will be tested
         """.trimMargin()
         )
-        println("No file name specified!")
 
         return
     }
 
-    val executablePath = args[0]
+    val executablePath = args.filterNot { it.startsWith("-") }.firstOrNull()
+
+    if (executablePath == null) {
+        println("No benchmarking application specified!")
+
+        return
+    }
 
     val executableFile = File(executablePath)
 
