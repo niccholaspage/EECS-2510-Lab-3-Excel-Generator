@@ -1,4 +1,3 @@
-import org.apache.poi.ss.usermodel.CellType
 import org.apache.poi.ss.util.CellReference
 import org.apache.poi.xssf.usermodel.XSSFWorkbook
 import java.io.BufferedReader
@@ -26,14 +25,12 @@ val datatypes = listOf(
     "Skip List"
 )
 
-fun runProgram(filePath: String): MutableMap<String, MutableMap<String, Any>> {
+fun runProgram(executableFile: File, filePath: String): MutableMap<String, MutableMap<String, Any>> {
     val builder = ProcessBuilder()
 
     // Windows check would go here
 
-    val exeFile = File("C:\\Users\\nicch\\Documents\\Projects\\C++\\EECS-2510-Lab-3\\x64\\Release\\Lab 3.exe")
-
-    builder.command("\"${exeFile.path}\" \"$filePath\"")
+    builder.command("\"${executableFile.path}\" \"$filePath\"")
 
     val process = builder.start()
 
@@ -95,7 +92,31 @@ fun runProgram(filePath: String): MutableMap<String, MutableMap<String, Any>> {
 
 fun main(args: Array<String>) {
     if (args.isEmpty()) {
+        println(
+            """Lab 3 Excel Generator
+            |Nicholas Nassar
+            |This program runs the structure benchmarking application for Lab 3 on specified files multiple times,
+            |averaging out the results and writing them to out to an Excel workbook.
+            |
+            |The first argument should be the path to the benchmarking application, and every subsequent argument should
+            |be the text files you would like to test. If using recursive mode, only the application path needs to be
+            |specified.
+            |
+            |Available Flags:
+            |-r - Recursive mode: Any .txt sitting in the working directory directories underneath it will be tested
+        """.trimMargin()
+        )
         println("No file name specified!")
+
+        return
+    }
+
+    val executablePath = args[0]
+
+    val executableFile = File(executablePath)
+
+    if (!executableFile.exists()) {
+        println("The benchmarking application was not found at the provided path!")
 
         return
     }
@@ -105,7 +126,13 @@ fun main(args: Array<String>) {
 
         workingDirectory.walk().filter { it.extension == "txt" }.map { it.canonicalPath }.toList()
     } else {
-        args.toList()
+        args.toList().subList(1, args.size)
+    }
+
+    if (filePaths.isEmpty()) {
+        println("No text files found or supplied via arguments!")
+
+        return
     }
 
     val workbook = XSSFWorkbook()
@@ -118,7 +145,7 @@ fun main(args: Array<String>) {
         val allStats = mutableListOf<MutableMap<String, MutableMap<String, Any>>>()
 
         for (i in 0 until NUMBER_OF_RUNS) {
-            val stats = runProgram(filePath)
+            val stats = runProgram(executableFile, filePath)
 
             allStats.add(stats)
 
