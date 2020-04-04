@@ -100,11 +100,10 @@ fun runProgram(executableFile: File, filePath: String): StatMap {
     // map extension function provided by the Kotlin standard library, which allows us to transform an
     // iterable of items with a certain type into different objects. In this case, we map our datatype,
     // which is a string, to a mutable map that represents the key-values. We will use this map to throw
-    // in our stats. We include a single item into the map at first, which is the name of the file
-    // we are running tests on. Finally, we call the toMap method, which is an extension method that
+    // in our stats. Finally, we call the toMap method, which is an extension method that
     // converts an iterable of pairs into a map.
     val trackingStats = datatypes.map {
-        it to mutableMapOf<String, Any>("File" to filePath.substringAfterLast('\\'))
+        it to mutableMapOf<String, Any>()
     }.toMap()
 
     // We now need to process the output. Since the first line of the comparison program is just
@@ -136,8 +135,17 @@ fun runProgram(executableFile: File, filePath: String): StatMap {
     return trackingStats
 }
 
+/**
+ * The entry point into the program. We process the commandline arguments here
+ * to determine what executable file we will be running and what text files
+ * tests will actually be run on.
+ */
 fun main(args: Array<String>) {
-    if (args.isEmpty()) {
+    if (args.isEmpty()) { // If the user didn't provide any arguments, we don't know what to do!
+        // Print out a helpful message explaining what our program does and how to use it.
+        // We utilize Kotlin's raw string feature to make the string look better versus
+        // having to use string concatenation and newline characters. We call trimMargin
+        // on our string, which will return another string without the whitespace and | character.
         println(
             """Lab 3 Excel Generator
             |Nicholas Nassar
@@ -153,128 +161,172 @@ fun main(args: Array<String>) {
         """.trimMargin()
         )
 
-        return
+        return // We have nothing else to do, so we return
     }
 
+    // The first argument should be the executable, but we need to exclude any flags the user
+    // ran the program with, so we filter out any arguments that start with a dash, then grab
+    // the first one from the filtered list, or null if it doesn't exist.
     val executablePath = args.filterNot { it.startsWith("-") }.firstOrNull()
 
-    if (executablePath == null) {
-        println("No benchmarking application specified!")
+    if (executablePath == null) { // The user didn't provide an executable path,
+        println("No benchmarking application specified!") // so we print out a message since we don't know what to run!
 
-        return
+        return // We have nothing else to do.
     }
 
-    val executableFile = File(executablePath)
+    val executableFile = File(executablePath) // Construct a File object so we can check if the executable exists.
 
-    if (!executableFile.exists()) {
-        println("The benchmarking application was not found at the provided path!")
+    if (!executableFile.exists()) { // If the executable file doesn't exist, we can't run it!
+        println("The benchmarking application was not found at the provided path!") // Tell the user the file does not exist.
 
-        return
+        return // We're done.
     }
 
-    val filePaths = if (args[0] == "-r") {
-        val workingDirectory = File(".")
+    // This variable will store all paths to all of the text files we want to run
+    // our benchmark program on. Depending on whether the program was launched with
+    // the -r flag or not, we either have to recursively walk through the working
+    // directory, or just take the arguments as the file paths.
+    val filePaths = if (args[0] == "-r") { // If the first argument is the -r flag...
+        val workingDirectory = File(".") // We get the working directory by passing . into the File constructor
 
+        // We walk through our working directory, filtering by the .txt extension so we only get text files, map
+        // each file to its canonical path, which will give us the full path of each file, and finally turn it into
+        // a list.
         workingDirectory.walk().filter { it.extension == "txt" }.map { it.canonicalPath }.toList()
-    } else {
+    } else { // We didn't get the -r flag, so we can just run files based on the arguments
+        // We just need to get the text file paths from the argument list, so we convert our
+        // args array into a list, then take a sublist of that list, excluding the first item,
+        // since the first item refers to the executable file path.
         args.toList().subList(1, args.size)
     }
 
+    // If our filePaths list is empty, the user didn't supply any text files or none were found
+    // when recursively walking through our working directory.
     if (filePaths.isEmpty()) {
-        println("No text files found or supplied via arguments!")
+        println("No text files found or supplied via arguments!") // Tell the user the issue.
 
-        return
+        return // Return since we have no text files to run tests on.
     }
 
-    val workbook = XSSFWorkbook()
+    val workbook = XSSFWorkbook() // Construct a new .xlsx Excel workbook.
 
-    var dataRow = 1
+    // We will start writing data at row 2 of the Excel sheet.
+    // Apache POI is zero-based, so we start at 1.
+    var currentRow = 1
 
-    for (filePath in filePaths) {
-        println("Running $filePath:")
+    for (filePath in filePaths) {       // Loop through each file path,
+        println("Running $filePath:")   // and tell the user which file is being run.
 
-        val allStats = mutableListOf<StatMap>()
+        // We run our benchmarking program on the file n number of times,
+        // n being our NUMBER_OF_RUNS constant. To do this, we map an int
+        // range from 0 to NUMBER_OF_RUNS to the stats from a run of the program.
+        val runData = (0 until NUMBER_OF_RUNS).map { i ->
+            val stats = runProgram(executableFile, filePath) // Run the program and get the results
 
-        for (i in 0 until NUMBER_OF_RUNS) {
-            val stats = runProgram(executableFile, filePath)
+            println("Finished Test ${i + 1} / $NUMBER_OF_RUNS") // Tell the user we just finished running a test
 
-            allStats.add(stats)
-
-            println("Finished Test ${i + 1} / $NUMBER_OF_RUNS")
+            // Return the stats to our map function. Since we aren't using
+            // the return keyword, the last statement, which is the line below,
+            // will implicitly be returned to our map call.
+            stats
         }
 
-        println()
+        println() // Print a newline just for formatting, as we've just finished running all tests for a file.
 
-        val averageStats = datatypes.map {
+        // We build a map that will be used to sum all of the stats from each test result.
+        // To do this, we map each datatype to a key value pair, with the datatype being the key,
+        // and a mutable map of strings and any type as the value. We include a key value pair for
+        // File, so that the file name eventually gets written out to our Excel sheet. After mapping
+        // out our datatypes, we call toMap to convert our pairs to an actual map.
+        val sumOfAllStats = datatypes.map {
             it to mutableMapOf<String, Any>("File" to filePath.substringAfterLast('\\'))
         }.toMap()
 
-        allStats.forEach { stats ->
-            stats.forEach { (datatype, results) ->
-                val averageResults = averageStats[datatype]!!
+        runData.forEach { stats -> // Loop through each of our runs,
+            stats.forEach { (datatype, results) -> // Loop through the stats for each datatype,
+                val sumResults =
+                    sumOfAllStats[datatype]!! // Get the map that will be storing the sum of all of our stats
 
+                // Loop through the results for our datatype so we can look at each stat
                 results.forEach { (statName, statValue) ->
-                    when (statValue) {
-                        is Double -> {
-                            val averageValue = averageResults.getOrDefault(statName, 0.0) as Double
+                    when (statValue) { // When a stat value is...
+                        is Double -> { // a double,
+                            // We can get the current sum from sumResults, or default to 0 if there
+                            // isn't one yet.
+                            val sumValue = sumResults.getOrDefault(statName, 0.0) as Double
 
-                            averageResults[statName] = averageValue + statValue
+                            // We then add our statValue to the sumValue,
+                            // and place it back into the map.
+                            sumResults[statName] = sumValue + statValue
                         }
-                        is String -> {
-                            averageResults[statName] = statValue
-                        }
-                        else -> {
-                            throw IllegalArgumentException("Not seen type!")
+                        else -> { // If we have some other type here, something weird has happened.
+                            throw IllegalArgumentException("Not seen type!") // Throw an exception!
                         }
                     }
                 }
             }
         }
 
-        datatypes.forEach { datatype ->
+        // At this point, we have the sum of all of our stats, so we can write to our Excel workbook.
+        datatypes.forEach { datatype -> // Loop through each of our datatypes.
+            // We will get the sheet for our datatype, creating one if it doesn't already exist.
             val sheet = workbook.getSheet(datatype) ?: workbook.createSheet(datatype)
 
-            val header = sheet.createRow(0)
+            // NOTE: THIS HEADER GENERATION CODE GETS CALLED EVERY RUN.
+            // This could be optimized so that the header only gets written once.
+            val headerRow = sheet.createRow(0) // We create a header row for the sheet.
 
-            val data = sheet.createRow(dataRow)
+            val dataRow = sheet.createRow(currentRow) // We also create a data row so we can write the data for our file.
 
-            var currentColumn = 0
+            var currentColumn = 0 // We start writing at column 0.
 
-            averageStats[datatype]!!.forEach writer@{ key, value ->
-                if (ignore.contains(key)) {
-                    return@writer
+            // Get the sum of all stats for the datatype, and use not-null assertion
+            // because we know that our datatype is in the map. This can probably
+            // be written in a nicer way.
+            // We label this for each loop writer, so we can return to it later.
+            sumOfAllStats[datatype]!!.forEach writer@{ (key, value) -> // Loop through each stat,
+                if (ignore.contains(key)) { // If we are ignoring this key,
+                    return@writer // we return to our writer forEach loop. This is basically like a continue.
                 }
 
-                val replacement = replacements[key]
+                // If we have a replacement for this key, it will be
+                // the header value. Otherwise, we will just use the
+                // key as the header value. This allows us to modify
+                // header names so that they are different from the
+                // benchmark program's output.
+                val headerValue = replacements[key] ?: key
 
-                if (replacement != null) {
-                    header.createCell(currentColumn).setCellValue(replacement)
-                } else {
-                    header.createCell(currentColumn).setCellValue(key)
+                // Create the cell for our header value in our header row
+                // at the current column, and set its value to the header
+                // value.
+                headerRow.createCell(currentColumn).setCellValue(headerValue)
+
+                val dataCell = dataRow.createCell(currentColumn)
+
+                when (value) { // When the value is...
+                    is String -> { // a string,
+                        dataCell.setCellValue(value) // we set the value of the cell to the value.
+                    }
+                    is Double -> { // a double,
+                        // we first average out the value by dividing by the number of runs,
+                        val averageValue = value / NUMBER_OF_RUNS
+
+                        dataCell.setCellValue(averageValue) // and set the cell value to our average value.
+                    }
+                    else -> { // If we have some other type here, something weird has happened.
+                        throw IllegalArgumentException("Not seen type!") // Throw an exception!
+                    }
                 }
 
-                when (value) {
-                    is String -> {
-                        data.createCell(currentColumn).setCellValue(value)
-                    }
-                    is Double -> {
-                        val averagedValue = value / NUMBER_OF_RUNS
-
-                        data.createCell(currentColumn).setCellValue(averagedValue)
-                    }
-                    else -> {
-                        println("Bad type!!")
-                    }
-                }
-
-                currentColumn++
+                currentColumn++ // Increment our current column, as we are moving onto the next one
             }
         }
 
-        dataRow++
+        currentRow++ // Increment our current row, since we just finished the row we are currently on.
     }
 
-    workbook.write(FileOutputStream("output.xlsx"))
+    workbook.write(FileOutputStream("output.xlsx")) // Write our workbook output to output.xlsx
 
-    workbook.close()
+    workbook.close() // Close out the workbook. We are finished!
 }
