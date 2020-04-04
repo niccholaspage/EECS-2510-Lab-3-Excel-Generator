@@ -6,7 +6,7 @@ import java.io.FileOutputStream
 import java.io.InputStreamReader
 import java.util.concurrent.Executors
 
-const val NUMBER_OF_RUNS = 3
+const val NUMBER_OF_RUNS = 10
 
 val replacements = mapOf(
     "Balance Factor Changes" to "BF Changes",
@@ -25,7 +25,7 @@ val datatypes = listOf(
     "Skip List"
 )
 
-fun runProgram(executableFile: File, filePath: String): MutableMap<String, MutableMap<String, Any>> {
+fun runProgram(executableFile: File, filePath: String): Map<String, MutableMap<String, Any>> {
     val builder = ProcessBuilder()
 
     // Windows check would go here
@@ -63,11 +63,8 @@ fun runProgram(executableFile: File, filePath: String): MutableMap<String, Mutab
 
     var currentDatatype: String? = null
 
-    val trackingStats = mutableMapOf<String, MutableMap<String, Any>>()
-
-    datatypes.forEach { datatype ->
-        trackingStats[datatype] = mutableMapOf<String, Any>("File" to filePath.substringAfterLast('\\'))
-    }
+    val trackingStats =
+        datatypes.map { it to mutableMapOf<String, Any>("File" to filePath.substringAfterLast('\\')) }.toMap()
 
     output.subList(1, output.size).forEach { line ->
         datatypes.forEach typeCheck@{ datatype ->
@@ -142,7 +139,7 @@ fun main(args: Array<String>) {
     for (filePath in filePaths) {
         println("Running $filePath:")
 
-        val allStats = mutableListOf<MutableMap<String, MutableMap<String, Any>>>()
+        val allStats = mutableListOf<Map<String, MutableMap<String, Any>>>()
 
         for (i in 0 until NUMBER_OF_RUNS) {
             val stats = runProgram(executableFile, filePath)
