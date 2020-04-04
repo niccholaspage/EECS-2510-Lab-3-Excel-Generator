@@ -7,6 +7,10 @@
  * an Excel workbook. This program utilizes the Kotlin standard library as well as Apache POI and Apache
  * POI OOXML, allowing it to create and manipulate Excel workbooks.
  *
+ * Kotlin and Apache POI were picked due to my experience with the language and dependency through one of
+ * my jobs. Kotlin greatly cuts down the verbosity seen in Java and in my opinion, is actually fun to write.
+ * Apache POI is a very helpful library and makes creating and editing Excel workbooks straightforward and easy.
+ *
  * Author:     Nicholas Nassar, University of Toledo
  * Class:      EECS 2510-001 Non-Linear Data Structures, Spring 2020
  * Instructor: Dr.Thomas
@@ -66,6 +70,8 @@ fun runProgram(executableFile: File, filePath: String): Map<String, MutableMap<S
     // String line;
     // while ((line = reader.readLine()) != null) {}
     // So instead, we start off our line variable with the first line from the reader.
+    // This most likely could have been written in more idiomatic Kotlin, but this program
+    // was written quickly and I didn't want to figure out a better way to do this.
     var line = reader.readLine()
 
     while (true) {
@@ -84,26 +90,42 @@ fun runProgram(executableFile: File, filePath: String): Map<String, MutableMap<S
 
     process.destroy() // Just for cleanup, we destroy the process
 
-    var currentDatatype: String? = null
+    var currentDatatype: String? = null // We need to keep track of which datatype we are recording stats for
 
-    val trackingStats =
-        datatypes.map { it to mutableMapOf<String, Any>("File" to filePath.substringAfterLast('\\')) }.toMap()
+    // Lets create a map that will keep track of our stats for each datatype. We start off by using the
+    // map extension function provided by the Kotlin standard library, which allows us to transform an
+    // iterable of items with a certain type into different objects. In this case, we map our datatype,
+    // which is a string, to a mutable map that represents the key-values. We will use this map to throw
+    // in our stats. We include a single item into the map at first, which is the name of the file
+    // we are running tests on. Finally, we call the toMap method, which is an extension method that
+    // converts an iterable of pairs into a map.
+    val trackingStats = datatypes.map {
+        it to mutableMapOf<String, Any>("File" to filePath.substringAfterLast('\\'))
+    }.toMap()
 
-    output.subList(1, output.size).forEach { line ->
-        datatypes.forEach typeCheck@{ datatype ->
-            if (line.contains(datatype)) {
-                currentDatatype = datatype
+    // We now need to process the output. Since the first line of the comparison program is just
+    // the file the program is being ran on, we skip it by getting a sub list of our output,
+    // which will start at the second element.
+    output.subList(1, output.size).forEach { line -> // Loop through each line of our sublist.
+        // See if any of our datatype names are in the line.
+        val newDatatype = datatypes.find { line.contains(it) }
 
-                return@forEach
-            }
+        if (newDatatype != null) { // If new datatype isn't null, it looks like we did find a datatype.
+            currentDatatype = newDatatype   // We update our current datatype,
+
+            return@forEach                  // and return to the forEach, to parse the next line.
         }
 
-        if (line.contains(':')) {
-            val key = line.substringBefore(':')
+        if (line.contains(':')) { // If our line contains a colon, we know we have a stat.
+            val key = line.substringBefore(':') // The key or name of the stat is everything before the colon,
 
-            val count = line.substringAfter(": ").substringBefore(' ')
+            // and the value for the stat is everything after the colon and a space and before another space,
+            // to fix any issues with units, like elapsed time having the seconds unit.
+            val value = line.substringAfter(": ").substringBefore(' ')
 
-            trackingStats[currentDatatype]!![key] = count.toDouble()
+            // We now get the map of key values for our current datatype,
+            // and set the value at the key to the value we just parsed.
+            trackingStats[currentDatatype]!![key] = value.toDouble()
         }
     }
 
