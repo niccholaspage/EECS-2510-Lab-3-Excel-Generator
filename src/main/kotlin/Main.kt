@@ -76,15 +76,15 @@ fun runProgram(executableFile: File, filePath: String): StatMap {
     // So instead, we start off our line variable with the first line from the reader.
     // This most likely could have been written in more idiomatic Kotlin, but this program
     // was written quickly and I didn't want to figure out a better way to do this.
-    var line = reader.readLine()
+    var outputLine = reader.readLine()
 
     while (true) {
-        output.add(line) // We add our line to the output list.
+        output.add(outputLine) // We add our line to the output list.
 
-        line = reader.readLine() // Read a new line
+        outputLine = reader.readLine() // Read a new line
 
         // Our line is null, so we have no more output, so we break out of the while loop!
-        if (line == null) {
+        if (outputLine == null) {
             break
         }
     }
