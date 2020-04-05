@@ -158,7 +158,7 @@ fun main(args: Array<String>) {
             |specified.
             |
             |Available Flags:
-            |-r - Recursive mode: Any .txt sitting in the working directory directories underneath it will be tested
+            |-r - Recursive mode: Any .txt sitting in the working directory, including directories underneath it, will be tested
         """.trimMargin()
         )
 
