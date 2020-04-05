@@ -8,7 +8,7 @@
  * POI OOXML, allowing it to create and manipulate Excel workbooks.
  *
  * Kotlin and Apache POI were picked due to my experience with the language and dependency through one of
- * my jobs. Kotlin greatly cuts down the verbosity seen in Java and in my opinion, is actually fun to write.
+ * my jobs. Kotlin greatly cuts down on the verbosity seen in Java and in my opinion, is actually fun to write.
  * Apache POI is a very helpful library and makes creating and editing Excel workbooks straightforward and easy.
  *
  * Author:     Nicholas Nassar, University of Toledo
@@ -150,7 +150,8 @@ fun main(args: Array<String>) {
             """Lab 3 Excel Generator
             |Nicholas Nassar
             |This program runs the structure benchmarking application for Lab 3 on specified files multiple times,
-            |averaging out the results and writing them to out to an Excel workbook.
+            |averaging out the results and writing them to out to an Excel workbook titled output.xlsx alongside
+            |the current working directory of this program.
             |
             |The first argument should be the path to the benchmarking application, and every subsequent argument should
             |be the text files you would like to test. If using recursive mode, only the application path needs to be
